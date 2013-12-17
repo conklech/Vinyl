@@ -100,27 +100,29 @@ instance (Monoid t, Monoid (Rec fs g), Applicative g) => Monoid (Rec ((s ::: t) 
 
 -- | Records can be hoisted from one functor to another
 instance ApFunctor (Rec '[]) where
+  type ApMorphism (Rec '[]) = (~>)
   _  <<$>> RNil      = RNil
   {-# INLINE (<<$>>) #-}
 
-instance ApFunctor (Rec fs) => ApFunctor (Rec ((s ::: t) ': fs)) where
-  nat <<$>> (x :& xs) = nat x :& (nat <<$>> xs)
+instance (ApMorphism (Rec fs) ~ (~>), ApFunctor (Rec fs)) => ApFunctor (Rec ((s ::: t) ': fs)) where
+  type ApMorphism (Rec ((s ::: t) ': fs)) = (~>)
+  nat <<$>> (x :& xs) = runNT nat x :& (nat <<$>> xs)
   {-# INLINE (<<$>>) #-}
  
 instance ApPointed (Rec '[]) where
   apPure _ = RNil
   {-# INLINE apPure #-}
 
-instance ApPointed (Rec fs) => ApPointed (Rec ((s ::: t) ': fs)) where
+instance (ApMorphism (Rec fs) ~ (~>), ApPointed (Rec fs)) => ApPointed (Rec ((s ::: t) ': fs)) where
   apPure x = x :& apPure x
   {-# INLINE apPure #-}
 
 -- | Records can be applied to each other.
-instance ApApply (~>) (Rec '[]) where
+instance ApApply (Rec '[]) where
   RNil <<*>> RNil = RNil
   {-# INLINE (<<*>>) #-}
 
-instance ApApply (~>) (Rec fs) => ApApply (~>) (Rec ((s ::: t) ': fs)) where
+instance (ApMorphism (Rec fs) ~ (~>), ApApply (Rec fs)) => ApApply (Rec ((s ::: t) ': fs)) where
   (f :& fs) <<*>> (x :& xs) = runNT f x :& (fs <<*>> xs)
   {-# INLINE (<<*>>) #-}
 
@@ -129,7 +131,7 @@ instance ApTraversable (Rec '[]) where
   apTraverse _ RNil      = pure RNil
   {-# INLINE apTraverse #-}
 
-instance ApTraversable (Rec fs) => ApTraversable (Rec ((s ::: t) ': fs)) where
+instance (ApMorphism (Rec fs) ~ (~>), ApTraversable (Rec fs)) => ApTraversable (Rec ((s ::: t) ': fs)) where
   apTraverse m (x :& xs) = (:&) <$> (m x) <*> apTraverse m xs
   {-# INLINE apTraverse #-}
 
